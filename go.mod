@@ -2,6 +2,8 @@ module github.com/Mic92/sops-nix
 
 go 1.14
 
+replace go.mozilla.org/sops/v3 => github.com/colemickens/sops/v3 v3.6.1-0.20200725080011-f50d8246ece2
+
 require (
 	github.com/mozilla-services/yaml v0.0.0-20191106225358-5c216288813c
 	go.mozilla.org/sops/v3 v3.5.0

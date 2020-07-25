@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> {} }: let
-  vendorSha256 = "sha256-O0z+oEffOOZa/bn2gV9onLVbPBHsNDH2yq1CZPi8w58=";
+  vendorSha256 = "13jksrpjcbh8av8r521fxapd4drbbkvrjiwmr3my0p361h12l0ld";
 in rec {
   sops-init-gpg-key = pkgs.callPackage ./pkgs/sops-init-gpg-key {};
   sops-install-secrets = pkgs.callPackage ./pkgs/sops-install-secrets {
