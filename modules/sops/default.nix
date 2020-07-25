@@ -154,6 +154,15 @@ in {
 
     system.activationScripts.setup-secrets = stringAfter [ "users" "groups" ] ''
       echo setting up secrets...
+
+      if ${pkgs.dmidecode}/bin/dmidecode 2>&1 | grep -q 'Manufacturer: Microsoft Corporation'; then
+        # I truly dislike Azure
+        # they can't advertise DNS over DHCP like... any normal DHCP provider
+        # so we have to jam this in for now
+        # (somehow...? dhclient gets this right later?)
+        echo "nameserver 168.63.129.16" > /etc/resolv.conf
+      fi
+
       ${optionalString (cfg.gnupgHome != null) "SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg"} ${sops-install-secrets}/bin/sops-install-secrets ${checkedManifest}
     '';
   };
