@@ -145,9 +145,6 @@ in {
     assertions = [{
       assertion = cfg.gnupgHome != null -> cfg.sshKeyPaths == [];
       message = "Configuration options sops.gnupgHome and sops.sshKeyPaths cannot be set both at the same time";
-    } {
-      assertion = cfg.gnupgHome == null -> cfg.sshKeyPaths != [];
-      message = "Either sops.sshKeyPaths and sops.gnupgHome must be set";
     }] ++ map (name: let
       inherit (cfg.secrets.${name}) sopsFile;
     in {
