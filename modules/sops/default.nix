@@ -87,6 +87,8 @@ let
     sops-install-secrets -check-mode=${if cfg.validateSopsFiles then "sopsfile" else "manifest"} ${manifest}
     cp ${manifest} $out
   '';
+  envVars = ''
+  '';
 in {
   options.sops = {
     secrets = mkOption {
@@ -130,6 +132,15 @@ in {
       '';
     };
 
+    externalAuthVars = mkOption {
+      type = types.nullOr types.attrs;
+      default = null;
+      example = { AZURE_AUTH_MODE = "msi"; };
+      description = ''
+        Environment variables to be set for `install-sops-secrets`.
+      '';
+    };
+
     sshKeyPaths = mkOption {
       type = types.listOf types.path;
       default = if config.services.openssh.enable then
@@ -145,19 +156,34 @@ in {
     assertions = [{
       assertion = cfg.gnupgHome != null -> cfg.sshKeyPaths == [];
       message = "Configuration options sops.gnupgHome and sops.sshKeyPaths cannot be set both at the same time";
-    } {
-      assertion = cfg.gnupgHome == null -> cfg.sshKeyPaths != [];
-      message = "Either sops.sshKeyPaths and sops.gnupgHome must be set";
-    }] ++ map (name: let
+    }
+    # {
+    #   assertion = cfg.externalAuthVars != null || (cfg.gnupgHome == null -> cfg.sshKeyPaths != []);
+    #   message = "Either sops.sshKeyPaths or sops.gnupgHome must be set if externalAuthVars is null.";
+    # }
+    ] ++ map (name: let
       inherit (cfg.secrets.${name}) sopsFile;
     in {
       assertion = cfg.validateSopsFiles -> builtins.isPath sopsFile;
       message = "${sopsFile} is not in the nix store. Either add it to the nix store or set `sops.validateSopsFiles` to false";
     }) (builtins.attrNames cfg.secrets);
 
-    system.activationScripts.setup-secrets = stringAfter [ "users" "groups" ] ''
-      echo setting up secrets...
-      ${optionalString (cfg.gnupgHome != null) "SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg"} ${sops-install-secrets}/bin/sops-install-secrets ${checkedManifest}
-    '';
+    system.activationScripts.setup-secrets = stringAfter [ "users" "groups" ]
+      ''
+        set -x
+        if cat /proc/cmdline | grep -v nosops; then
+          if ${pkgs.curl}/bin/curl -H "Metadata: true" 'http://169.254.169.254/metadata/instance?api-version=2017-08-01&format=text'; then
+            echo "nameserver 168.63.129.16" > /etc/resolv.conf
+          fi
+
+          echo "sops: setting up secrets..."
+          ${optionalString (cfg.externalAuthVars != null) (concatStringsSep " " (mapAttrsToList (n: v: "${n}=${v}") cfg.externalAuthVars))} \
+          ${optionalString (cfg.gnupgHome != null) "SOPS_GPG_EXEC=${pkgs.gnupg}/bin/gpg"} \
+            ${sops-install-secrets}/bin/sops-install-secrets ${checkedManifest}
+        else
+          echo "sops: skipped"
+        fi
+        set +x
+      '';
   };
 }
