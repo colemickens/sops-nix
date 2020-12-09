@@ -172,9 +172,9 @@ in {
       ''
         set -x
         if cat /proc/cmdline | grep -v nosops; then
-          if ${pkgs.curl}/bin/curl -H "Metadata: true" 'http://169.254.169.254/metadata/instance?api-version=2017-08-01&format=text'; then
-            echo "nameserver 168.63.129.16" > /etc/resolv.conf
-          fi
+          #if ${pkgs.curl}/bin/curl -m 5 -H "Metadata: true" 'http://169.254.169.254/metadata/instance?api-version=2017-08-01&format=text'; then
+          #  echo "nameserver 168.63.129.16" > /etc/resolv.conf
+          #fi
 
           echo "sops: setting up secrets..."
           ${optionalString (cfg.externalAuthVars != null) (concatStringsSep " " (mapAttrsToList (n: v: "${n}=${v}") cfg.externalAuthVars))} \
